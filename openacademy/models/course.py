@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import fields, models
+from odoo import fields, models, api, exceptions
 
 
 class Course(models.Model):
@@ -29,3 +29,22 @@ class Session(models.Model):
     instructor_id = fields.Many2one('openacademy.partner', string="Instructor")
     course_id = fields.Many2one('openacademy.course', ondelete='cascade', string="Course", required=True)
     attendee_ids = fields.Many2many('openacademy.partner', string="Attendees")
+
+    seats = fields.Integer()
+    taken_seats = fields.Float(compute='_compute_taken_seats', store=True)
+
+    @api.depends('seats', 'attendee_ids')
+    def _compute_taken_seats(self):
+        for session in self:
+            if not session.seats:
+                session.taken_seats = 0.0
+            else: # Percentage
+                session.taken_seats = 100.0 * len(session.attendee_ids) / session.seats
+
+    @api.constrains('available_seats', 'attendee_ids')
+    def _check_taken_seats(self):
+        for session in self:
+            if session.taken_seats > 100:
+                raise exceptions.ValidationError(
+                    'The room has %s available seats and there is %s attendees registered' % (
+                    session.seats, len(session.attendee_ids)))
