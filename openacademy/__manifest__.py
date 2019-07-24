@@ -4,8 +4,7 @@
 
     'summary':
                    """
-                   Openacademy
-                   """,
+                   Openacademy""",
 
     'description': """
         Manage course, classes, teachers, students, ...
