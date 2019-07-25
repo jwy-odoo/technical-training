@@ -24,6 +24,7 @@ class Course(models.Model):
 class Session(models.Model):
     _name = 'openacademy.session'
     _description = 'Session'
+    _inherit = ['mail.thread']
 
     name = fields.Char(required=True)
     description = fields.Html()
@@ -67,3 +68,45 @@ class Session(models.Model):
             }}
         delta = fields.Date.from_string(self.end_date) - fields.Date.from_string(self.start_date)
         self.duration = delta.days + 1
+
+    @api.multi
+    def action_draft(self):
+        for rec in self:
+            rec.state = 'draft'
+            rec.message_post(body="Session %s of the course %s reset to draft" % (rec.name, rec.course_id.name))
+
+    @api.multi
+    def action_confirm(self):
+        for rec in self:
+            rec.state = 'confirmed'
+            rec.message_post(body="Session %s of the course %s confirmed" % (rec.name, rec.course_id.name))
+
+    @api.multi
+    def action_done(self):
+        for rec in self:
+            rec.state = 'done'
+            rec.message_post(body="Session %s of the course %s done" % (rec.name, rec.course_id.name))
+
+    def _auto_transition(self):
+        print("automatically_confirmed called")
+        for rec in self:
+            if rec.taken_seats >= 50 and rec.state == "draft":
+                rec.action_confirm()
+            elif rec.taken_seats < 50 and rec.state == "confirmed":
+                rec.action_draft()
+
+    @api.multi
+    def write(self, vals):
+        res = super(Session, self).write(vals)
+        self._auto_transition()
+        if vals.get('instructor_id'):
+            self.message_subscribe([vals['instructor_id']])
+        return res
+
+    @api.model
+    def create(self, vals):
+        res = super(Session, self).create(vals)
+        res._auto_transition()
+        if vals.get('instructor_id'):
+            res.message_subscribe([vals['instructor_id']])
+        return res

@@ -67,4 +67,10 @@
         <field name="view_id" ref="openacademy.partner_view_form"/>
         <field name="act_window_id" ref="openacademy.partner_action"/>
     </record>
+
+    <record id="partner_category_action" model="ir.actions.act_window">
+        <field name="name">Contact Tags</field>
+        <field name="res_model">res.partner.category</field>
+        <field name="view_mode">tree,form</field>
+    </record>
 </odoo>
